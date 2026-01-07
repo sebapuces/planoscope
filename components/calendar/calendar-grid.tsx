@@ -19,7 +19,7 @@ const WEEKDAYS = [
 
 // Silhouettes d'animaux en SVG
 function AnimalIcon({ type }: { type: string }) {
-  const icons: Record<string, JSX.Element> = {
+  const icons: Record<string, React.ReactNode> = {
     cat: (
       <svg viewBox="0 0 24 24" className="w-4 h-4 opacity-40" fill="currentColor">
         <path d="M12 2c-1.5 0-2.5.5-3 1.5-.3.6-.5 1.3-.5 2V7c-2 .5-4 2-4 5v4c0 2 1.5 4 4 4h7c2.5 0 4-2 4-4v-4c0-3-2-4.5-4-5V5.5c0-.7-.2-1.4-.5-2C14.5 2.5 13.5 2 12 2zm-3 4l1-3h4l1 3m-6 6a1 1 0 110 2 1 1 0 010-2m6 0a1 1 0 110 2 1 1 0 010-2m-3 3c1 0 2 .5 2 1.5S13 18 12 18s-2-.5-2-1.5.5-1.5 2-1.5z"/>
