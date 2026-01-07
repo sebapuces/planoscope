@@ -150,7 +150,11 @@ export function getSchoolHolidaysForDate(
   }
 
   // Prendre le premier nom (devrait être le même pour toutes)
-  const [name, zonesSet] = byName.entries().next().value
+  const entry = byName.entries().next().value
+  if (!entry) {
+    return { name: "Vacances", zones: [] }
+  }
+  const [name, zonesSet] = entry
   const zones = Array.from(zonesSet).sort() as SchoolZone[]
 
   return { name, zones }
