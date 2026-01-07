@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["planoscope"]
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String     // hash bcrypt
+  name      String?
+  calendars Calendar[]
+  createdAt DateTime   @default(now())
+
+  @@schema("planoscope")
+}
+
+model Calendar {
+  id            String          @id @default(cuid())
+  name          String
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shareToken    String?         @unique
+  sharePassword String?         // hash optionnel
+  events        Event[]
+  eventTypes    EventType[]
+  prompts       Prompt[]
+  rules         Rule[]
+  states        CalendarState[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([userId])
+  @@schema("planoscope")
+}
+
+model Event {
+  id          String     @id @default(cuid())
+  calendarId  String
+  calendar    Calendar   @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  title       String
+  notes       String?    // commentaires/notes sur l'événement
+  startDate   DateTime
+  endDate     DateTime
+  eventTypeId String?
+  eventType   EventType? @relation(fields: [eventTypeId], references: [id], onDelete: SetNull)
+  promptId    String?    // prompt qui a créé cet événement
+  prompt      Prompt?    @relation(fields: [promptId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([calendarId])
+  @@index([eventTypeId])
+  @@index([promptId])
+  @@schema("planoscope")
+}
+
+model EventType {
+  id         String   @id @default(cuid())
+  calendarId String
+  calendar   Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  name       String
+  color      String   // hex color
+  events     Event[]
+  createdAt  DateTime @default(now())
+
+  @@unique([calendarId, name])
+  @@index([calendarId])
+  @@schema("planoscope")
+}
+
+model Prompt {
+  id             String         @id @default(cuid())
+  calendarId     String
+  calendar       Calendar       @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  content        String         // texte utilisateur
+  interpretation String?        // explication IA
+  snapshotName   String?        // nom si snapshot nommé
+  events         Event[]        // événements créés par ce prompt
+  state          CalendarState?
+  createdAt      DateTime       @default(now())
+
+  @@index([calendarId])
+  @@schema("planoscope")
+}
+
+model Rule {
+  id          String   @id @default(cuid())
+  calendarId  String
+  calendar    Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  description String
+  ruleType    String   // "exclusion_jour", "incompatibilite", "preference"
+  parameters  String   // JSON
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([calendarId])
+  @@schema("planoscope")
+}
+
+model CalendarState {
+  id         String   @id @default(cuid())
+  calendarId String
+  calendar   Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  promptId   String   @unique
+  prompt     Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  stateJson  String   // snapshot complet (events, types, rules)
+  createdAt  DateTime @default(now())
+
+  @@index([calendarId])
+  @@schema("planoscope")
+}
