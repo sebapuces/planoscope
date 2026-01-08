@@ -152,7 +152,7 @@ export function CalendarSynthesis({
                         {/* Indicateur de couleur */}
                         <div
                           className="w-1 h-full min-h-[40px] rounded-full shrink-0"
-                          style={{ backgroundColor: event.eventType?.color || "#3b82f6" }}
+                          style={{ backgroundColor: event.color || "#9ca3af" }}
                         />
 
                         <div className="flex-1 min-w-0">
@@ -160,17 +160,6 @@ export function CalendarSynthesis({
                             <span className="text-sm font-medium text-gray-900">
                               {event.title}
                             </span>
-                            {event.eventType && (
-                              <span
-                                className="text-xs px-2 py-0.5 rounded-full"
-                                style={{
-                                  backgroundColor: `${event.eventType.color}20`,
-                                  color: event.eventType.color
-                                }}
-                              >
-                                {event.eventType.name}
-                              </span>
-                            )}
                           </div>
                           <div className="text-sm text-gray-500 mt-0.5">
                             {formatEventDates(event)}

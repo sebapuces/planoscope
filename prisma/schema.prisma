@@ -31,6 +31,7 @@ model Calendar {
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   shareToken    String?         @unique
   sharePassword String?         // hash optionnel
+  legend        String?         // légende personnalisée (markdown)
   events        Event[]
   eventTypes    EventType[]
   prompts       Prompt[]
@@ -49,6 +50,7 @@ model Event {
   calendar    Calendar   @relation(fields: [calendarId], references: [id], onDelete: Cascade)
   title       String
   notes       String?    // commentaires/notes sur l'événement
+  color       String?    // couleur hex de l'événement
   startDate   DateTime
   endDate     DateTime
   eventTypeId String?

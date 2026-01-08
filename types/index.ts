@@ -2,10 +2,11 @@ export interface CalendarEvent {
   id: string
   title: string
   notes?: string | null
+  color?: string | null
   startDate: Date
   endDate: Date
-  eventTypeId: string | null
-  eventType: EventType | null
+  eventTypeId?: string | null
+  eventType?: EventType | null
   calendarId: string
 }
 

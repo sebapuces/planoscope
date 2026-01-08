@@ -8,8 +8,7 @@ import { EventModal } from "./event-modal"
 import { Button } from "@/components/ui/button"
 import { Undo2, History, FileText } from "lucide-react"
 import { CalendarSynthesis } from "@/components/calendar/calendar-synthesis"
-import { EventTypesPanel } from "./event-types-panel"
-import { EventType } from "@/types"
+import { LegendPanel } from "./legend-panel"
 
 interface Prompt {
   id: string
@@ -41,12 +40,14 @@ interface CalendarViewProps {
   calendarId: string
   initialEvents: CalendarEvent[]
   initialPrompts?: Prompt[]
+  initialLegend?: string | null
 }
 
 export function CalendarView({
   calendarId,
   initialEvents,
   initialPrompts = [],
+  initialLegend = null,
 }: CalendarViewProps) {
   const [events, setEvents] = useState<CalendarEvent[]>(initialEvents)
   const [prompts, setPrompts] = useState<Prompt[]>(initialPrompts)
@@ -60,7 +61,6 @@ export function CalendarView({
   const [showHistory, setShowHistory] = useState(false)
   const [showSynthesis, setShowSynthesis] = useState(false)
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
-  const [eventTypes, setEventTypes] = useState<EventType[]>([])
 
   // Historique pour l'annulation (max 20 états)
   const historyRef = useRef<{ events: CalendarEvent[]; description: string }[]>([])
@@ -94,10 +94,9 @@ export function CalendarView({
   useEffect(() => {
     async function loadData() {
       try {
-        const [promptsRes, snapshotsRes, typesRes] = await Promise.all([
+        const [promptsRes, snapshotsRes] = await Promise.all([
           fetch(`/api/calendars/${calendarId}/prompts`),
           fetch(`/api/calendars/${calendarId}/snapshots`),
-          fetch(`/api/calendars/${calendarId}/types`),
         ])
         if (promptsRes.ok) {
           const data = await promptsRes.json()
@@ -106,10 +105,6 @@ export function CalendarView({
         if (snapshotsRes.ok) {
           const data = await snapshotsRes.json()
           setSnapshots(data)
-        }
-        if (typesRes.ok) {
-          const data = await typesRes.json()
-          setEventTypes(data)
         }
       } catch (error) {
         console.error("Error loading data:", error)
@@ -475,40 +470,13 @@ export function CalendarView({
     setShowSynthesis(false)
   }
 
-  function handleEventTypeCreated(eventType: EventType) {
-    setEventTypes((prev) => [...prev, eventType])
-  }
-
-  function handleEventTypeUpdated(eventType: EventType) {
-    setEventTypes((prev) => prev.map((t) => (t.id === eventType.id ? eventType : t)))
-    // Mettre à jour les événements qui utilisent ce type
-    setEvents((prev) =>
-      prev.map((e) =>
-        e.eventTypeId === eventType.id ? { ...e, eventType } : e
-      )
-    )
-  }
-
-  function handleEventTypeDeleted(typeId: string) {
-    setEventTypes((prev) => prev.filter((t) => t.id !== typeId))
-    // Les événements gardent leur eventTypeId mais eventType devient null
-    setEvents((prev) =>
-      prev.map((e) =>
-        e.eventTypeId === typeId ? { ...e, eventType: null } : e
-      )
-    )
-  }
-
   return (
     <div className="flex flex-col h-[calc(100vh-120px)]">
       <div className="flex gap-4 flex-1 overflow-hidden">
-        <div className="w-56 shrink-0">
-          <EventTypesPanel
+        <div className="w-48 shrink-0">
+          <LegendPanel
             calendarId={calendarId}
-            eventTypes={eventTypes}
-            onEventTypeCreated={handleEventTypeCreated}
-            onEventTypeUpdated={handleEventTypeUpdated}
-            onEventTypeDeleted={handleEventTypeDeleted}
+            initialLegend={initialLegend}
           />
         </div>
         <div className="flex-1 overflow-auto">
@@ -608,7 +576,6 @@ export function CalendarView({
         selectedDate={selectedDate}
         clickedDate={clickedDate}
         event={selectedEvent}
-        eventTypes={eventTypes}
         onEventCreated={handleEventCreated}
         onEventUpdated={handleEventUpdated}
         onEventDeleted={handleEventDeleted}

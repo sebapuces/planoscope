@@ -11,8 +11,23 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { CalendarEvent, EventType } from "@/types"
+import { CalendarEvent } from "@/types"
 import { formatDateKey } from "@/lib/calendar-utils"
+
+const DEFAULT_COLORS = [
+  "#3b82f6", // blue
+  "#22c55e", // green
+  "#f59e0b", // amber
+  "#ef4444", // red
+  "#8b5cf6", // violet
+  "#ec4899", // pink
+  "#06b6d4", // cyan
+  "#f97316", // orange
+  "#84cc16", // lime
+  "#14b8a6", // teal
+  "#a855f7", // purple
+  "#f43f5e", // rose
+]
 
 interface EventModalProps {
   isOpen: boolean
@@ -21,7 +36,6 @@ interface EventModalProps {
   selectedDate: Date | null
   clickedDate: Date | null // La date sur laquelle l'utilisateur a cliqué
   event: CalendarEvent | null
-  eventTypes: EventType[]
   onEventCreated: (event: CalendarEvent) => void
   onEventUpdated: (event: CalendarEvent) => void
   onEventDeleted: (eventId: string) => void
@@ -35,7 +49,6 @@ export function EventModal({
   selectedDate,
   clickedDate,
   event,
-  eventTypes,
   onEventCreated,
   onEventUpdated,
   onEventDeleted,
@@ -47,7 +60,8 @@ export function EventModal({
   const [endDate, setEndDate] = useState("")
   const [showSplitChoice, setShowSplitChoice] = useState(false)
   const [editMode, setEditMode] = useState<"full" | "day">("full")
-  const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null)
+  const [selectedColor, setSelectedColor] = useState<string | null>(null)
+  const [customColor, setCustomColor] = useState("")
 
   // Reset form when modal opens
   useEffect(() => {
@@ -75,11 +89,12 @@ export function EventModal({
         setEndDate(selectedDate ? formatDateKey(selectedDate) : "")
         setShowSplitChoice(false)
         setEditMode("full")
-        setSelectedTypeId(null)
+        setSelectedColor(null)
+        setCustomColor("")
       }
-      // Set the event type if editing
-      if (event?.eventTypeId) {
-        setSelectedTypeId(event.eventTypeId)
+      // Set the color if editing
+      if (event?.color) {
+        setSelectedColor(event.color)
       }
     }
   }, [isOpen, event, selectedDate, clickedDate])
@@ -94,11 +109,12 @@ export function EventModal({
       const startDateStr = formatDateKey(selectedDate)
       const endDateStr = isPeriod ? endDate : startDateStr
 
+      const colorToUse = customColor || selectedColor
       const eventData = {
         title: title.trim(),
         startDate: new Date(startDateStr).toISOString(),
         endDate: new Date(endDateStr).toISOString(),
-        eventTypeId: selectedTypeId,
+        color: colorToUse,
       }
 
       if (event) {
@@ -386,47 +402,60 @@ export function EventModal({
             />
           </div>
 
-          {eventTypes.length > 0 && (
-            <div className="space-y-2">
-              <Label>Type</Label>
-              <div className="flex gap-1 flex-wrap">
+          <div className="space-y-2">
+            <Label>Couleur</Label>
+            <div className="flex gap-1 flex-wrap items-center">
+              <button
+                type="button"
+                className={`w-6 h-6 rounded-full border-2 transition-transform ${
+                  selectedColor === null && !customColor
+                    ? "ring-2 ring-offset-2 ring-gray-400 scale-110"
+                    : "border-gray-300 hover:border-gray-400"
+                }`}
+                style={{ background: "linear-gradient(135deg, #f3f4f6 50%, #d1d5db 50%)" }}
+                onClick={() => {
+                  setSelectedColor(null)
+                  setCustomColor("")
+                }}
+                title="Sans couleur"
+              />
+              {DEFAULT_COLORS.map((color) => (
                 <button
+                  key={color}
                   type="button"
-                  className={`px-2 py-1 text-xs rounded-full border transition-colors ${
-                    selectedTypeId === null
-                      ? "bg-gray-100 border-gray-400"
-                      : "bg-white border-gray-200 hover:border-gray-300"
+                  className={`w-6 h-6 rounded-full transition-transform ${
+                    selectedColor === color && !customColor
+                      ? "ring-2 ring-offset-2 ring-gray-400 scale-110"
+                      : ""
                   }`}
-                  onClick={() => setSelectedTypeId(null)}
-                >
-                  Aucun
-                </button>
-                {eventTypes.map((type) => (
-                  <button
-                    key={type.id}
-                    type="button"
-                    className={`px-2 py-1 text-xs rounded-full border transition-colors flex items-center gap-1 ${
-                      selectedTypeId === type.id
-                        ? "ring-2 ring-offset-1 ring-gray-400"
-                        : "hover:border-gray-300"
-                    }`}
-                    style={{
-                      backgroundColor: `${type.color}20`,
-                      borderColor: type.color,
-                      color: type.color,
-                    }}
-                    onClick={() => setSelectedTypeId(type.id)}
-                  >
-                    <span
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: type.color }}
-                    />
-                    {type.name}
-                  </button>
-                ))}
-              </div>
+                  style={{ backgroundColor: color }}
+                  onClick={() => {
+                    setSelectedColor(color)
+                    setCustomColor("")
+                  }}
+                />
+              ))}
+              <Input
+                type="text"
+                value={customColor}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setCustomColor(val)
+                  if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+                    setSelectedColor(val)
+                  }
+                }}
+                placeholder="#hex"
+                className="w-20 h-7 text-xs ml-1"
+              />
+              {customColor && /^#[0-9A-Fa-f]{6}$/.test(customColor) && (
+                <span
+                  className="w-6 h-6 rounded-full ring-2 ring-offset-2 ring-gray-400"
+                  style={{ backgroundColor: customColor }}
+                />
+              )}
             </div>
-          )}
+          </div>
 
           <div className="flex items-center gap-3">
             <input

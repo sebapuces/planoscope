@@ -50,7 +50,7 @@ export async function POST(
   }
 
   try {
-    const { title, startDate, endDate, eventTypeId } = await req.json()
+    const { title, startDate, endDate, eventTypeId, color } = await req.json()
 
     if (!title || !startDate || !endDate) {
       return NextResponse.json(
@@ -66,6 +66,7 @@ export async function POST(
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         eventTypeId: eventTypeId || null,
+        color: color || null,
       },
       include: { eventType: true },
     })

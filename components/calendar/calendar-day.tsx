@@ -134,16 +134,15 @@ export function CalendarDay({ day, onClick, onEventClick, onEventDrop }: Calenda
                 className={cn(
                   "text-xs px-1.5 py-0.5 rounded truncate cursor-grab transition-colors",
                   "hover:ring-2 hover:ring-offset-1 active:cursor-grabbing",
-                  event.eventType
-                    ? "border-l-3"
-                    : "bg-blue-100 border-l-3 border-blue-500 text-blue-900 hover:ring-blue-300"
+                  "border-l-3",
+                  !event.color && "bg-gray-100 border-gray-400 text-gray-700 hover:ring-gray-300"
                 )}
                 style={
-                  event.eventType
+                  event.color
                     ? {
-                        backgroundColor: `${event.eventType.color}20`,
-                        borderLeftColor: event.eventType.color,
-                        color: event.eventType.color,
+                        backgroundColor: `${event.color}20`,
+                        borderLeftColor: event.color,
+                        color: event.color,
                       }
                     : undefined
                 }
@@ -154,9 +153,6 @@ export function CalendarDay({ day, onClick, onEventClick, onEventDrop }: Calenda
             <TooltipContent side="top" className="max-w-xs">
               <div className="font-medium">{event.title}</div>
               <div className="text-gray-300 text-[11px]">{formatEventDate(event)}</div>
-              {event.eventType && (
-                <div className="text-gray-400 text-[10px]">Type: {event.eventType.name}</div>
-              )}
             </TooltipContent>
           </Tooltip>
         ))}

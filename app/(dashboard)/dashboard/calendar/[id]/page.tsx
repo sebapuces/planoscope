@@ -68,6 +68,7 @@ export default async function CalendarPage({ params }: CalendarPageProps) {
         <CalendarView
           calendarId={calendar.id}
           initialEvents={events}
+          initialLegend={calendar.legend}
         />
       </main>
     </div>

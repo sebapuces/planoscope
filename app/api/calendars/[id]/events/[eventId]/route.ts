@@ -35,6 +35,7 @@ export async function PUT(
     if (body.startDate !== undefined) data.startDate = new Date(body.startDate)
     if (body.endDate !== undefined) data.endDate = new Date(body.endDate)
     if (body.eventTypeId !== undefined) data.eventTypeId = body.eventTypeId || null
+    if (body.color !== undefined) data.color = body.color || null
     if (body.notes !== undefined) data.notes = body.notes
 
     const updated = await prisma.event.update({

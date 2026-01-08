@@ -28,7 +28,7 @@ export async function GET(
   return NextResponse.json(calendar)
 }
 
-// PUT /api/calendars/[id] - Modifier un calendrier
+// PUT /api/calendars/[id] - Modifier un calendrier (nom)
 export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -50,6 +50,44 @@ export async function PUT(
     const updated = await prisma.calendar.update({
       where: { id },
       data: { name },
+    })
+
+    return NextResponse.json(updated)
+  } catch (error) {
+    console.error("Error updating calendar:", error)
+    return NextResponse.json(
+      { error: "Erreur lors de la modification" },
+      { status: 500 }
+    )
+  }
+}
+
+// PATCH /api/calendars/[id] - Mise à jour partielle (légende, etc.)
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  const session = await auth()
+  if (!session?.user) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+  }
+
+  const calendar = await prisma.calendar.findUnique({ where: { id } })
+  if (!calendar || calendar.userId !== session.user.id) {
+    return NextResponse.json({ error: "Non trouvé" }, { status: 404 })
+  }
+
+  try {
+    const body = await req.json()
+
+    const data: Record<string, unknown> = {}
+    if (body.name !== undefined) data.name = body.name
+    if (body.legend !== undefined) data.legend = body.legend
+
+    const updated = await prisma.calendar.update({
+      where: { id },
+      data,
     })
 
     return NextResponse.json(updated)
