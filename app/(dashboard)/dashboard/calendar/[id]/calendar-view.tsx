@@ -8,6 +8,8 @@ import { EventModal } from "./event-modal"
 import { Button } from "@/components/ui/button"
 import { Undo2, History, FileText } from "lucide-react"
 import { CalendarSynthesis } from "@/components/calendar/calendar-synthesis"
+import { EventTypesPanel } from "./event-types-panel"
+import { EventType } from "@/types"
 
 interface Prompt {
   id: string
@@ -58,6 +60,7 @@ export function CalendarView({
   const [showHistory, setShowHistory] = useState(false)
   const [showSynthesis, setShowSynthesis] = useState(false)
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
+  const [eventTypes, setEventTypes] = useState<EventType[]>([])
 
   // Historique pour l'annulation (max 20 états)
   const historyRef = useRef<{ events: CalendarEvent[]; description: string }[]>([])
@@ -91,9 +94,10 @@ export function CalendarView({
   useEffect(() => {
     async function loadData() {
       try {
-        const [promptsRes, snapshotsRes] = await Promise.all([
+        const [promptsRes, snapshotsRes, typesRes] = await Promise.all([
           fetch(`/api/calendars/${calendarId}/prompts`),
           fetch(`/api/calendars/${calendarId}/snapshots`),
+          fetch(`/api/calendars/${calendarId}/types`),
         ])
         if (promptsRes.ok) {
           const data = await promptsRes.json()
@@ -102,6 +106,10 @@ export function CalendarView({
         if (snapshotsRes.ok) {
           const data = await snapshotsRes.json()
           setSnapshots(data)
+        }
+        if (typesRes.ok) {
+          const data = await typesRes.json()
+          setEventTypes(data)
         }
       } catch (error) {
         console.error("Error loading data:", error)
@@ -467,9 +475,42 @@ export function CalendarView({
     setShowSynthesis(false)
   }
 
+  function handleEventTypeCreated(eventType: EventType) {
+    setEventTypes((prev) => [...prev, eventType])
+  }
+
+  function handleEventTypeUpdated(eventType: EventType) {
+    setEventTypes((prev) => prev.map((t) => (t.id === eventType.id ? eventType : t)))
+    // Mettre à jour les événements qui utilisent ce type
+    setEvents((prev) =>
+      prev.map((e) =>
+        e.eventTypeId === eventType.id ? { ...e, eventType } : e
+      )
+    )
+  }
+
+  function handleEventTypeDeleted(typeId: string) {
+    setEventTypes((prev) => prev.filter((t) => t.id !== typeId))
+    // Les événements gardent leur eventTypeId mais eventType devient null
+    setEvents((prev) =>
+      prev.map((e) =>
+        e.eventTypeId === typeId ? { ...e, eventType: null } : e
+      )
+    )
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-120px)]">
       <div className="flex gap-4 flex-1 overflow-hidden">
+        <div className="w-56 shrink-0">
+          <EventTypesPanel
+            calendarId={calendarId}
+            eventTypes={eventTypes}
+            onEventTypeCreated={handleEventTypeCreated}
+            onEventTypeUpdated={handleEventTypeUpdated}
+            onEventTypeDeleted={handleEventTypeDeleted}
+          />
+        </div>
         <div className="flex-1 overflow-auto">
           <CalendarGrid
             events={events}
@@ -567,6 +608,7 @@ export function CalendarView({
         selectedDate={selectedDate}
         clickedDate={clickedDate}
         event={selectedEvent}
+        eventTypes={eventTypes}
         onEventCreated={handleEventCreated}
         onEventUpdated={handleEventUpdated}
         onEventDeleted={handleEventDeleted}

@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { CalendarEvent } from "@/types"
+import { CalendarEvent, EventType } from "@/types"
 import { formatDateKey } from "@/lib/calendar-utils"
 
 interface EventModalProps {
@@ -21,6 +21,7 @@ interface EventModalProps {
   selectedDate: Date | null
   clickedDate: Date | null // La date sur laquelle l'utilisateur a cliqué
   event: CalendarEvent | null
+  eventTypes: EventType[]
   onEventCreated: (event: CalendarEvent) => void
   onEventUpdated: (event: CalendarEvent) => void
   onEventDeleted: (eventId: string) => void
@@ -34,6 +35,7 @@ export function EventModal({
   selectedDate,
   clickedDate,
   event,
+  eventTypes,
   onEventCreated,
   onEventUpdated,
   onEventDeleted,
@@ -45,6 +47,7 @@ export function EventModal({
   const [endDate, setEndDate] = useState("")
   const [showSplitChoice, setShowSplitChoice] = useState(false)
   const [editMode, setEditMode] = useState<"full" | "day">("full")
+  const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null)
 
   // Reset form when modal opens
   useEffect(() => {
@@ -72,6 +75,11 @@ export function EventModal({
         setEndDate(selectedDate ? formatDateKey(selectedDate) : "")
         setShowSplitChoice(false)
         setEditMode("full")
+        setSelectedTypeId(null)
+      }
+      // Set the event type if editing
+      if (event?.eventTypeId) {
+        setSelectedTypeId(event.eventTypeId)
       }
     }
   }, [isOpen, event, selectedDate, clickedDate])
@@ -90,6 +98,7 @@ export function EventModal({
         title: title.trim(),
         startDate: new Date(startDateStr).toISOString(),
         endDate: new Date(endDateStr).toISOString(),
+        eventTypeId: selectedTypeId,
       }
 
       if (event) {
@@ -376,6 +385,48 @@ export function EventModal({
               required
             />
           </div>
+
+          {eventTypes.length > 0 && (
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <div className="flex gap-1 flex-wrap">
+                <button
+                  type="button"
+                  className={`px-2 py-1 text-xs rounded-full border transition-colors ${
+                    selectedTypeId === null
+                      ? "bg-gray-100 border-gray-400"
+                      : "bg-white border-gray-200 hover:border-gray-300"
+                  }`}
+                  onClick={() => setSelectedTypeId(null)}
+                >
+                  Aucun
+                </button>
+                {eventTypes.map((type) => (
+                  <button
+                    key={type.id}
+                    type="button"
+                    className={`px-2 py-1 text-xs rounded-full border transition-colors flex items-center gap-1 ${
+                      selectedTypeId === type.id
+                        ? "ring-2 ring-offset-1 ring-gray-400"
+                        : "hover:border-gray-300"
+                    }`}
+                    style={{
+                      backgroundColor: `${type.color}20`,
+                      borderColor: type.color,
+                      color: type.color,
+                    }}
+                    onClick={() => setSelectedTypeId(type.id)}
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: type.color }}
+                    />
+                    {type.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-3">
             <input
