@@ -64,6 +64,7 @@ interface CalendarGridProps {
   onDayClick?: (date: Date) => void
   onEventClick?: (event: CalendarEvent, date: Date) => void
   onEventDrop?: (event: CalendarEvent, fromDate: Date, toDate: Date) => void
+  onEventsReorder?: (date: Date, eventIds: string[]) => void
 }
 
 export function CalendarGrid({
@@ -71,6 +72,7 @@ export function CalendarGrid({
   onDayClick,
   onEventClick,
   onEventDrop,
+  onEventsReorder,
 }: CalendarGridProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
 
@@ -139,6 +141,7 @@ export function CalendarGrid({
             onClick={onDayClick}
             onEventClick={onEventClick}
             onEventDrop={onEventDrop}
+            onEventsReorder={onEventsReorder}
           />
         ))}
       </div>

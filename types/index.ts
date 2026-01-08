@@ -3,6 +3,7 @@ export interface CalendarEvent {
   title: string
   notes?: string | null
   color?: string | null
+  order?: number
   startDate: Date
   endDate: Date
   eventTypeId?: string | null

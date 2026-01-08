@@ -151,6 +151,48 @@ export function CalendarView({
     setIsModalOpen(false)
   }
 
+  async function handleEventsReorder(date: Date, eventIds: string[]) {
+    saveToHistory("Réorganisation des événements")
+
+    // Mise à jour optimiste locale - mettre à jour l'ordre des événements
+    const updatedEvents = events.map((e) => {
+      const newIndex = eventIds.indexOf(e.id)
+      if (newIndex !== -1) {
+        return { ...e, order: newIndex }
+      }
+      return e
+    })
+    setEvents(updatedEvents)
+
+    // Appel API pour persister
+    try {
+      const response = await fetch(`/api/calendars/${calendarId}/events/reorder`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventIds }),
+      })
+
+      if (!response.ok) {
+        // Annuler la mise à jour optimiste en cas d'erreur
+        setEvents(events)
+        setFeedback({
+          warnings: ["Erreur lors de la réorganisation"],
+          createdCount: 0,
+          updatedCount: 0,
+          deletedCount: 0,
+        })
+      }
+    } catch {
+      setEvents(events)
+      setFeedback({
+        warnings: ["Erreur de connexion"],
+        createdCount: 0,
+        updatedCount: 0,
+        deletedCount: 0,
+      })
+    }
+  }
+
   async function handleEventDrop(event: CalendarEvent, fromDate: Date, toDate: Date) {
     saveToHistory("Déplacement d'événement")
 
@@ -485,6 +527,7 @@ export function CalendarView({
             onDayClick={handleDayClick}
             onEventClick={handleEventClick}
             onEventDrop={handleEventDrop}
+            onEventsReorder={handleEventsReorder}
           />
         </div>
 

@@ -51,6 +51,7 @@ model Event {
   title       String
   notes       String?    // commentaires/notes sur l'événement
   color       String?    // couleur hex de l'événement
+  order       Int        @default(0) // ordre d'affichage dans la journée
   startDate   DateTime
   endDate     DateTime
   eventTypeId String?

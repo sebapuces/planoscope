@@ -28,23 +28,28 @@ interface CalendarDayProps {
   onClick?: (date: Date) => void
   onEventClick?: (event: CalendarEvent, date: Date) => void
   onEventDrop?: (event: CalendarEvent, fromDate: Date, toDate: Date) => void
+  onEventsReorder?: (date: Date, eventIds: string[]) => void
 }
 
-export function CalendarDay({ day, onClick, onEventClick, onEventDrop }: CalendarDayProps) {
+export function CalendarDay({ day, onClick, onEventClick, onEventDrop, onEventsReorder }: CalendarDayProps) {
   const maxVisibleEvents = 3
   const [isDragOver, setIsDragOver] = useState(false)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+
+  // Trier les événements par ordre (défini tôt pour utiliser dans les handlers)
+  const sortedEvents = [...day.events].sort((a, b) => (a.order || 0) - (b.order || 0))
 
   function handleEventClick(e: React.MouseEvent, event: CalendarEvent) {
     e.stopPropagation()
     onEventClick?.(event, day.date)
   }
 
-  function handleDragStart(e: React.DragEvent, event: CalendarEvent) {
+  function handleDragStart(e: React.DragEvent, event: CalendarEvent, index: number) {
     e.stopPropagation()
-    // Stocker l'événement et la date de départ
     e.dataTransfer.setData("application/json", JSON.stringify({
       event,
-      fromDate: day.date.toISOString()
+      fromDate: day.date.toISOString(),
+      fromIndex: index
     }))
     e.dataTransfer.effectAllowed = "move"
   }
@@ -59,19 +64,60 @@ export function CalendarDay({ day, onClick, onEventClick, onEventDrop }: Calenda
     setIsDragOver(false)
   }
 
+  function handleEventDragOver(e: React.DragEvent, index: number) {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverIndex(index)
+  }
+
+  function handleEventDragLeave() {
+    setDragOverIndex(null)
+  }
+
   function handleDrop(e: React.DragEvent) {
     e.preventDefault()
     setIsDragOver(false)
+    setDragOverIndex(null)
 
     try {
       const data = JSON.parse(e.dataTransfer.getData("application/json"))
       const event = data.event as CalendarEvent
       const fromDate = new Date(data.fromDate)
 
-      // Ne rien faire si on dépose sur le même jour
-      if (formatDateKey(fromDate) === formatDateKey(day.date)) return
+      // Si on dépose sur un autre jour, déplacer l'événement
+      if (formatDateKey(fromDate) !== formatDateKey(day.date)) {
+        onEventDrop?.(event, fromDate, day.date)
+      }
+    } catch {
+      // Ignorer les erreurs de parsing
+    }
+  }
 
-      onEventDrop?.(event, fromDate, day.date)
+  function handleEventDrop(e: React.DragEvent, targetIndex: number) {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverIndex(null)
+
+    try {
+      const data = JSON.parse(e.dataTransfer.getData("application/json"))
+      const event = data.event as CalendarEvent
+      const fromDate = new Date(data.fromDate)
+      const fromIndex = data.fromIndex as number
+
+      // Si c'est le même jour, réordonner
+      if (formatDateKey(fromDate) === formatDateKey(day.date)) {
+        if (fromIndex === targetIndex) return
+
+        // Créer le nouvel ordre à partir de sortedEvents (pas day.events qui n'est pas trié)
+        const newOrder = [...sortedEvents]
+        const [movedEvent] = newOrder.splice(fromIndex, 1)
+        newOrder.splice(targetIndex, 0, movedEvent)
+
+        onEventsReorder?.(day.date, newOrder.map(e => e.id))
+      } else {
+        // Déplacer vers un autre jour
+        onEventDrop?.(event, fromDate, day.date)
+      }
     } catch {
       // Ignorer les erreurs de parsing
     }
@@ -80,7 +126,6 @@ export function CalendarDay({ day, onClick, onEventClick, onEventDrop }: Calenda
   const hasSchoolHoliday = !!day.schoolHoliday
   const isPublicHoliday = !!day.holiday
 
-  // Formater l'affichage des zones
   const schoolHolidayLabel = day.schoolHoliday
     ? `${day.schoolHoliday.name} (${day.schoolHoliday.zones.join("")})`
     : undefined
@@ -125,18 +170,22 @@ export function CalendarDay({ day, onClick, onEventClick, onEventDrop }: Calenda
       </div>
 
       <div className="mt-1 space-y-0.5">
-        {day.events.slice(0, maxVisibleEvents).map((event) => (
+        {sortedEvents.slice(0, maxVisibleEvents).map((event, index) => (
           <Tooltip key={event.id}>
             <TooltipTrigger asChild>
               <div
                 draggable
-                onDragStart={(e) => handleDragStart(e, event)}
+                onDragStart={(e) => handleDragStart(e, event, index)}
+                onDragOver={(e) => handleEventDragOver(e, index)}
+                onDragLeave={handleEventDragLeave}
+                onDrop={(e) => handleEventDrop(e, index)}
                 onClick={(e) => handleEventClick(e, event)}
                 className={cn(
-                  "text-xs px-1.5 py-0.5 rounded truncate cursor-grab transition-colors",
+                  "text-xs px-1.5 py-0.5 rounded truncate cursor-grab transition-all",
                   "hover:ring-2 hover:ring-offset-1 active:cursor-grabbing",
                   "border-l-3",
-                  !event.color && "bg-gray-100 border-gray-400 text-gray-700 hover:ring-gray-300"
+                  !event.color && "bg-gray-100 border-gray-400 text-gray-700 hover:ring-gray-300",
+                  dragOverIndex === index && "ring-2 ring-blue-400 ring-offset-1 scale-[1.02]"
                 )}
                 style={
                   event.color
@@ -157,14 +206,14 @@ export function CalendarDay({ day, onClick, onEventClick, onEventDrop }: Calenda
             </TooltipContent>
           </Tooltip>
         ))}
-        {day.events.length > maxVisibleEvents && (
+        {sortedEvents.length > maxVisibleEvents && (
           <Popover>
             <PopoverTrigger asChild>
               <button
                 onClick={(e) => e.stopPropagation()}
                 className="text-xs text-blue-600 hover:text-blue-800 hover:underline px-1.5 w-full text-left"
               >
-                +{day.events.length - maxVisibleEvents} autres
+                +{sortedEvents.length - maxVisibleEvents} autres
               </button>
             </PopoverTrigger>
             <PopoverContent
@@ -177,15 +226,21 @@ export function CalendarDay({ day, onClick, onEventClick, onEventDrop }: Calenda
                 {day.date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
               </div>
               <div className="space-y-1">
-                {day.events.map((event) => (
+                {sortedEvents.map((event, index) => (
                   <div
                     key={event.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, event, index)}
+                    onDragOver={(e) => handleEventDragOver(e, index)}
+                    onDragLeave={handleEventDragLeave}
+                    onDrop={(e) => handleEventDrop(e, index)}
                     onClick={(e) => handleEventClick(e, event)}
                     className={cn(
-                      "text-xs px-2 py-1.5 rounded cursor-pointer transition-colors",
-                      "hover:ring-2 hover:ring-offset-1",
+                      "text-xs px-2 py-1.5 rounded cursor-grab transition-all",
+                      "hover:ring-2 hover:ring-offset-1 active:cursor-grabbing",
                       "border-l-3",
-                      !event.color && "bg-gray-100 border-gray-400 text-gray-700 hover:ring-gray-300"
+                      !event.color && "bg-gray-100 border-gray-400 text-gray-700 hover:ring-gray-300",
+                      dragOverIndex === index && "ring-2 ring-blue-400 ring-offset-1"
                     )}
                     style={
                       event.color
