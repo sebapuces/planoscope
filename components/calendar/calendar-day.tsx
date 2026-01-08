@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 import { CalendarDay as CalendarDayType, CalendarEvent } from "@/types"
 import { formatDateKey } from "@/lib/calendar-utils"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 
 function formatEventDate(event: CalendarEvent): string {
   const start = new Date(event.startDate)
@@ -157,9 +158,52 @@ export function CalendarDay({ day, onClick, onEventClick, onEventDrop }: Calenda
           </Tooltip>
         ))}
         {day.events.length > maxVisibleEvents && (
-          <div className="text-xs text-gray-500 px-1.5">
-            +{day.events.length - maxVisibleEvents} autres
-          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="text-xs text-blue-600 hover:text-blue-800 hover:underline px-1.5 w-full text-left"
+              >
+                +{day.events.length - maxVisibleEvents} autres
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-72 p-2 max-h-80 overflow-auto"
+              side="right"
+              align="start"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-sm font-medium mb-2 text-gray-700">
+                {day.date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+              </div>
+              <div className="space-y-1">
+                {day.events.map((event) => (
+                  <div
+                    key={event.id}
+                    onClick={(e) => handleEventClick(e, event)}
+                    className={cn(
+                      "text-xs px-2 py-1.5 rounded cursor-pointer transition-colors",
+                      "hover:ring-2 hover:ring-offset-1",
+                      "border-l-3",
+                      !event.color && "bg-gray-100 border-gray-400 text-gray-700 hover:ring-gray-300"
+                    )}
+                    style={
+                      event.color
+                        ? {
+                            backgroundColor: `${event.color}20`,
+                            borderLeftColor: event.color,
+                            color: event.color,
+                          }
+                        : undefined
+                    }
+                  >
+                    <div className="font-medium truncate">{event.title}</div>
+                    <div className="text-[10px] opacity-70">{formatEventDate(event)}</div>
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
         )}
       </div>
     </div>
